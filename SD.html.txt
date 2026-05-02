@@ -1,0 +1,218 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scotch Whisky Archive</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .font-serif { font-family: 'Lora', serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #a8a29e; }
+    </style>
+</head>
+<body class="bg-stone-50 text-stone-900">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo } = React;
+
+        const WHISKY_DATA = [
+            // SPEYSIDE
+            { name: "Aberlour", region: "Speyside", town: "Aberlour", year: 1879, expressions: ["12 Year Old Double Cask", "A'bunadh", "16 Year Old"], profiles: "Rich, fruity, spicy, sherry-led" },
+            { name: "Balvenie", region: "Speyside", town: "Dufftown", year: 1892, expressions: ["DoubleWood 12", "Caribbean Cask 14", "PortWood 21"], profiles: "Honeyed, floral, smooth, sweet" },
+            { name: "Benromach", region: "Speyside", town: "Forres", year: 1898, expressions: ["10 Year Old", "15 Year Old", "Peat Smoke"], profiles: "Old-school Speyside, light peat, fruity" },
+            { name: "Cardhu", region: "Speyside", town: "Knockando", year: 1824, expressions: ["12 Year Old", "15 Year Old", "Amber Rock"], profiles: "Clean, sweet, apple, oaky" },
+            { name: "Cragganmore", region: "Speyside", town: "Ballindalloch", year: 1869, expressions: ["12 Year Old", "Distillers Edition", "25 Year Old"], profiles: "Complex, herbal, sweet, structured" },
+            { name: "Glenfarclas", region: "Speyside", town: "Ballindalloch", year: 1836, expressions: ["10 Year Old", "15 Year Old", "105 Cask Strength"], profiles: "Heavy sherry, dried fruits, cake, spice" },
+            { name: "Glenfiddich", region: "Speyside", town: "Dufftown", year: 1887, expressions: ["12 Year Old", "15 Year Old Solera", "18 Year Old"], profiles: "Fresh pear, orchard fruit, oak" },
+            { name: "The Glenlivet", region: "Speyside", town: "Ballindalloch", year: 1824, expressions: ["12 Year Old", "Founder's Reserve", "18 Year Old"], profiles: "Fruity, floral, pineapple, smooth" },
+            { name: "The Macallan", region: "Speyside", town: "Craigellachie", year: 1824, expressions: ["Sherry Oak 12", "Double Cask 15", "Rare Cask"], profiles: "Sherry, dried fruit, wood smoke, spice" },
+            { name: "Mortlach", region: "Speyside", town: "Dufftown", year: 1823, expressions: ["12 Year Old Wee Witchie", "16 Year Old", "20 Year Old"], profiles: "Meaty, robust, savory, 'The Beast of Dufftown'" },
+            { name: "GlenAllachie", region: "Speyside", town: "Aberlour", year: 1967, expressions: ["12 Year Old", "15 Year Old", "10 Year Old Cask Strength"], profiles: "Butterscotch, honey, dark chocolate" },
+            { name: "Dailuaine", region: "Speyside", town: "Aberlour", year: 1852, expressions: ["Flora & Fauna 16", "Adelphi Bottlings", "Signatory 1997"], profiles: "Rich, waxy, sherry, malt" },
+            { name: "Linkwood", region: "Speyside", town: "Elgin", year: 1821, expressions: ["Flora & Fauna 12", "Gordon & MacPhail 15", "Signatory 2008"], profiles: "Light, floral, grassy, apple" },
+            { name: "Longmorn", region: "Speyside", town: "Elgin", year: 1893, expressions: ["16 Year Old", "Distiller's Choice", "Gordon & MacPhail 2003"], profiles: "Complex, creamy, honey, citrus" },
+            { name: "Glen Grant", region: "Speyside", town: "Rothes", year: 1840, expressions: ["10 Year Old", "12 Year Old", "18 Year Old"], profiles: "Light, orchard fruits, nutty, crisp" },
+            { name: "Glenrothes", region: "Speyside", town: "Rothes", year: 1879, expressions: ["12 Year Old", "Maker's Cut", "18 Year Old"], profiles: "Berry fruits, vanilla, spice, mellow" },
+            { name: "Tamdhu", region: "Speyside", town: "Knockando", year: 1897, expressions: ["12 Year Old", "15 Year Old", "Batch Strength"], profiles: "Sherry, spice, cinnamon, toffee" },
+            { name: "Knockando", region: "Speyside", town: "Knockando", year: 1898, expressions: ["12 Year Old", "15 Year Old", "21 Year Old"], profiles: "Nutty, floral, honey, smooth" },
+            { name: "Glendullan", region: "Speyside", town: "Dufftown", year: 1897, expressions: ["Singletton of Glendullan 12", "Select", "18 Year Old"], profiles: "Fresh fruit, light, grassy" },
+            { name: "Dufftown", region: "Speyside", town: "Dufftown", year: 1895, expressions: ["Singleton of Dufftown 12", "15 Year Old", "Tailfire"], profiles: "Nutty, spicy, brown sugar" },
+
+            // HIGHLANDS
+            { name: "Aberfeldy", region: "Highland", town: "Aberfeldy", year: 1896, expressions: ["12 Year Old", "16 Year Old", "21 Year Old"], profiles: "Honeyed, heather, waxy, sweet" },
+            { name: "AnCnoc (Knockdhu)", region: "Highland", town: "Huntly", year: 1894, expressions: ["12 Year Old", "18 Year Old", "Peatheart"], profiles: "Lemon, honey, light, aromatic" },
+            { name: "Blair Athol", region: "Highland", town: "Pitlochry", year: 1798, expressions: ["Flora & Fauna 12", "Special Releases", "Signatory 2008"], profiles: "Nutty, malt, Christmas cake" },
+            { name: "Clynelish", region: "Highland", town: "Brora", year: 1819, expressions: ["14 Year Old", "Reserve", "Distillers Edition"], profiles: "Waxy, coastal, mustard, tropical fruit" },
+            { name: "Dalmore", region: "Highland", town: "Alness", year: 1839, expressions: ["12 Year Old", "15 Year Old", "King Alexander III"], profiles: "Chocolate, orange, coffee, sherry" },
+            { name: "Dalwhinnie", region: "Highland", town: "Dalwhinnie", year: 1897, expressions: ["12 Year Old", "Winter's Gold", "Distillers Edition"], profiles: "Honey, heather, light smoke, clean" },
+            { name: "Deanston", region: "Highland", town: "Doune", year: 1965, expressions: ["12 Year Old", "Virgin Oak", "18 Year Old"], profiles: "Nutty, waxy, honeyed, cereal" },
+            { name: "Edradour", region: "Highland", town: "Pitlochry", year: 1825, expressions: ["10 Year Old", "Ballechin (Peated)", "Caledonia 12"], profiles: "Creamy, nutty, minty, dried fruit" },
+            { name: "Fettercairn", region: "Highland", town: "Fettercairn", year: 1824, expressions: ["12 Year Old", "16 Year Old", "28 Year Old"], profiles: "Tropical fruit, ginger, coffee" },
+            { name: "Glen Garioch", region: "Highland", town: "Oldmeldrum", year: 1797, expressions: ["12 Year Old", "Founder's Reserve", "Virgin Oak"], profiles: "Honey, heather, Highland spice" },
+            { name: "Glendronach", region: "Highland", town: "Huntly", year: 1826, expressions: ["12 Year Old", "15 Year Old Revival", "18 Year Old Allardice"], profiles: "Rich sherry, dark fruit, chocolate, tobacco" },
+            { name: "Glenmorangie", region: "Highland", town: "Tain", year: 1843, expressions: ["The Original 10", "Lasanta", "Quinta Ruban"], profiles: "Citrus, vanilla, floral, elegant" },
+            { name: "Glenturret", region: "Highland", town: "Crieff", year: 1763, expressions: ["10 Year Old Peated", "12 Year Old", "15 Year Old"], profiles: "Oldest distillery, malty, sweet, oily" },
+            { name: "Oban", region: "Highland", town: "Oban", year: 1794, expressions: ["14 Year Old", "Little Bay", "Distillers Edition"], profiles: "Coastal, orange, salt, light peat" },
+            { name: "Old Pulteney", region: "Highland", town: "Wick", year: 1826, expressions: ["12 Year Old", "Huddart", "18 Year Old"], profiles: "The Maritime Malt, salt, citrus, honey" },
+            { name: "Royal Brackla", region: "Highland", town: "Nairn", year: 1812, expressions: ["12 Year Old", "16 Year Old", "21 Year Old"], profiles: "Sherry finish, spices, dark berries" },
+            { name: "Royal Lochnagar", region: "Highland", town: "Ballater", year: 1845, expressions: ["12 Year Old", "Selected Reserve", "Game of Thrones Edition"], profiles: "Light, toffee, hay, spice" },
+            { name: "Tomatin", region: "Highland", town: "Inverness", year: 1897, expressions: ["12 Year Old", "14 Year Old Port Wood", "Cask Strength"], profiles: "Fruity, lemon, pine, honey" },
+            { name: "Tullibardine", region: "Highland", town: "Blackford", year: 1949, expressions: ["Sovereign", "225 Sauternes Finish", "228 Burgundy Finish"], profiles: "Nutty, malty, creamy vanilla" },
+            { name: "Ardmore", region: "Highland", town: "Huntly", year: 1898, expressions: ["Legacy", "12 Year Old Port Wood", "Traditional Cask"], profiles: "Peated Highland, earthy, honey" },
+            { name: "Glen Ord", region: "Highland", town: "Muir of Ord", year: 1838, expressions: ["Singleton of Glen Ord 12", "15 Year Old", "18 Year Old"], profiles: "Fruity, gingery, chocolatey" },
+            { name: "Glengoyne", region: "Highland", town: "Dumgoyne", year: 1833, expressions: ["10 Year Old", "12 Year Old", "18 Year Old"], profiles: "Unpeated, apple, toffee, sherry" },
+            { name: "Teaninich", region: "Highland", town: "Alness", year: 1817, expressions: ["Flora & Fauna 10", "Independent Bottlings", "Special Releases"], profiles: "Green, herbal, zesty, clean" },
+
+            // ISLAY
+            { name: "Ardbeg", region: "Islay", town: "Port Ellen", year: 1815, expressions: ["10 Year Old", "Uigeadail", "Corryvreckan"], profiles: "Peat monster, smoke, lemon, sea salt" },
+            { name: "Bowmore", region: "Islay", town: "Bowmore", year: 1779, expressions: ["12 Year Old", "15 Year Old", "18 Year Old"], profiles: "Balanced smoke, tropical fruit, sea air" },
+            { name: "Bruichladdich", region: "Islay", town: "Port Charlotte", year: 1881, expressions: ["The Classic Laddie", "Port Charlotte", "Octomore"], profiles: "Unpeated Islay, floral, coastal, barley" },
+            { name: "Bunnahabhain", region: "Islay", town: "Port Askaig", year: 1881, expressions: ["12 Year Old", "18 Year Old", "Toiteach A Dhà"], profiles: "Unpeated/lightly peated, nutty, coastal" },
+            { name: "Caol Ila", region: "Islay", town: "Port Askaig", year: 1846, expressions: ["12 Year Old", "18 Year Old", "Moch"], profiles: "Peat smoke, olive oil, lemon, sea air" },
+            { name: "Kilchoman", region: "Islay", town: "Kilchoman", year: 2005, expressions: ["Machir Bay", "Sanaig", "100% Islay"], profiles: "Farm distillery, clean smoke, vanilla" },
+            { name: "Lagavulin", region: "Islay", town: "Port Ellen", year: 1816, expressions: ["16 Year Old", "8 Year Old", "Distillers Edition"], profiles: "Intense peat, lapsang souchong, sweet sherry" },
+            { name: "Laphroaig", region: "Islay", town: "Port Ellen", year: 1815, expressions: ["10 Year Old", "Quarter Cask", "Lore"], profiles: "Medicinal, iodine, heavy smoke, seaweed" },
+            { name: "Ardnahoe", region: "Islay", town: "Port Askaig", year: 2018, expressions: ["Inaugural Release", "Cask Strength", "Work in Progress"], profiles: "Peat, cream, maritime, lemon" },
+
+            // LOWLANDS
+            { name: "Auchentoshan", region: "Lowland", town: "Clydebank", year: 1823, expressions: ["12 Year Old", "Three Wood", "American Oak"], profiles: "Triple distilled, smooth, citrus, grass" },
+            { name: "Bladnoch", region: "Lowland", town: "Wigtown", year: 1817, expressions: ["10 Year Old", "Adela 15", "Talia 25"], profiles: "Floral, grassy, lemon, fresh" },
+            { name: "Glenkinchie", region: "Lowland", town: "Pencaitland", year: 1837, expressions: ["12 Year Old", "Distillers Edition", "Edinburgh Malt"], profiles: "Light, floral, dry, herbal" },
+            { name: "Ailsa Bay", region: "Lowland", town: "Girvan", year: 2007, expressions: ["Release 1.2 Sweet Smoke", "Peated", "Various"], profiles: "Scientific precision, balanced peat/smoke" },
+            { name: "Kingsbarns", region: "Lowland", town: "St Andrews", year: 2014, expressions: ["Dream to Dram", "Balcomie", "Distillery Reserve"], profiles: "Light, pineapple, banana, floral" },
+            { name: "Lindores Abbey", region: "Lowland", town: "Newburgh", year: 2017, expressions: ["MCDXCIV", "The Casks of Lindores", "Aqua Vitae"], profiles: "The spiritual home, fruity, malty" },
+            { name: "Daftmill", region: "Lowland", town: "Cupar", year: 2005, expressions: ["Winter Batch", "Summer Batch", "Single Casks"], profiles: "Farmhouse style, cereal, fruit, honey" },
+            { name: "Lochlea", region: "Lowland", town: "Mauchline", year: 2018, expressions: ["Our Barley", "Harvest Edition", "Fallow Edition"], profiles: "Fresh orchard fruit, cereal, spice" },
+            { name: "Clydeside", region: "Lowland", town: "Glasgow", year: 2017, expressions: ["Stobcross", "Cask Strength", "New Make"], profiles: "Light, floral, maritime, vanilla" },
+            { name: "Glasgow Distillery", region: "Lowland", town: "Glasgow", year: 2014, expressions: ["1770 The Original", "1770 Peated", "1770 Triple Distilled"], profiles: "Modern Lowland, fruity, elegant" },
+
+            // CAMPBELTOWN
+            { name: "Glen Scotia", region: "Campbeltown", town: "Campbeltown", year: 1832, expressions: ["15 Year Old", "Victoriana", "Double Cask"], profiles: "Oily, coastal, salty, fruity" },
+            { name: "Glengyle (Kilkerran)", region: "Campbeltown", town: "Campbeltown", year: 2004, expressions: ["12 Year Old", "8 Year Old CS", "Heavily Peated"], profiles: "Complex, earthy smoke, honey, citrus" },
+            { name: "Springbank", region: "Campbeltown", town: "Campbeltown", year: 1828, expressions: ["10 Year Old", "15 Year Old", "12 Year Old Cask Strength"], profiles: "Handmade, oily, industrial, brine, fruit" },
+            { name: "Longrow (at Springbank)", region: "Campbeltown", town: "Campbeltown", year: 1973, expressions: ["Peated", "18 Year Old", "Red Edition"], profiles: "Heavily peated, earthy, medicinal" },
+            { name: "Hazelburn (at Springbank)", region: "Campbeltown", town: "Campbeltown", year: 1997, expressions: ["10 Year Old", "21 Year Old", "Sherry Wood"], profiles: "Triple distilled, unpeated, creamy" },
+
+            // ISLANDS
+            { name: "Arran (Lochranza)", region: "Island", town: "Lochranza", year: 1995, expressions: ["10 Year Old", "Quarter Cask", "Amarone Cask"], profiles: "Bright, citrus, tropical fruit" },
+            { name: "Highland Park", region: "Island", town: "Kirkwall", year: 1798, expressions: ["12 Year Old", "18 Year Old", "Dragon Legend"], profiles: "Heather honey, aromatic peat, floral" },
+            { name: "Jura", region: "Island", town: "Craighouse", year: 1810, expressions: ["10 Year Old", "Journey", "Seven Wood"], profiles: "Light, honey, nutty, sea air" },
+            { name: "Scapa", region: "Island", town: "Kirkwall", year: 1885, expressions: ["Skiren", "Glansa", "16 Year Old"], profiles: "Honey, floral, unpeated, tropical" },
+            { name: "Talisker", region: "Island", town: "Carbost", year: 1830, expressions: ["10 Year Old", "57 North", "Port Ruighe"], profiles: "Sea salt, black pepper, bonfire smoke" },
+            { name: "Tobermory", region: "Island", town: "Tobermory", year: 1798, expressions: ["12 Year Old", "Ledaig 10 (Peated)", "Ledaig 18"], profiles: "Fruity, coastal, medicinal (Ledaig)" }
+        ];
+
+        const REGIONS = ["All", "Speyside", "Highland", "Islay", "Lowland", "Campbeltown", "Island"];
+
+        const App = () => {
+            const [searchTerm, setSearchTerm] = useState("");
+            const [selectedRegion, setSelectedRegion] = useState("All");
+            const [sortOrder, setSortOrder] = useState("asc");
+
+            const filteredDistilleries = useMemo(() => {
+                return WHISKY_DATA
+                    .filter(d => {
+                        const matchesSearch = d.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                              d.town.toLowerCase().includes(searchTerm.toLowerCase());
+                        const matchesRegion = selectedRegion === "All" || d.region === selectedRegion;
+                        return matchesSearch && matchesRegion;
+                    })
+                    .sort((a, b) => sortOrder === "asc" ? a.year - b.year : b.year - a.year);
+            }, [searchTerm, selectedRegion, sortOrder]);
+
+            return (
+                <div className="min-h-screen p-4 md:p-8">
+                    <header className="max-w-6xl mx-auto mb-8 border-b border-stone-200 pb-6">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                            <div>
+                                <h1 className="text-4xl font-serif font-bold text-stone-800">🥃 Scotch Whisky Archive</h1>
+                                <p className="text-stone-500 mt-2">A comprehensive database of 100+ distilleries by heritage and character.</p>
+                            </div>
+                            <div className="relative w-full md:w-80">
+                                <input 
+                                    type="text"
+                                    placeholder="Search by name or town..."
+                                    className="w-full px-4 py-2 bg-white border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none shadow-sm"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
+                            </div>
+                        </div>
+                    </header>
+
+                    <main className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-8">
+                        <div className="lg:col-span-1 space-y-6">
+                            <section className="bg-white p-5 rounded-xl shadow-sm border border-stone-100">
+                                <h3 className="font-bold text-stone-700 mb-4 uppercase text-xs tracking-widest">Browse Regions</h3>
+                                <div className="flex flex-col gap-1">
+                                    {REGIONS.map(region => (
+                                        <button
+                                            key={region}
+                                            onClick={() => setSelectedRegion(region)}
+                                            className={`text-left px-3 py-2 rounded-md transition-colors ${selectedRegion === region ? "bg-amber-100 text-amber-900 font-medium" : "hover:bg-stone-100 text-stone-600"}`}
+                                        >
+                                            {region}
+                                        </button>
+                                    ))}
+                                </div>
+                            </section>
+
+                            <section className="bg-amber-900 text-white p-5 rounded-xl shadow-md">
+                                <h3 className="font-bold mb-3">Heritage Sort</h3>
+                                <div className="flex bg-amber-800/50 p-1 rounded-lg">
+                                    <button onClick={() => setSortOrder('asc')} className={`flex-1 py-1.5 text-sm rounded ${sortOrder === 'asc' ? 'bg-amber-600 shadow' : ''}`}>Oldest</button>
+                                    <button onClick={() => setSortOrder('desc')} className={`flex-1 py-1.5 text-sm rounded ${sortOrder === 'desc' ? 'bg-amber-600 shadow' : ''}`}>Newest</button>
+                                </div>
+                            </section>
+                        </div>
+
+                        <div className="lg:col-span-3 space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {filteredDistilleries.map(distillery => (
+                                    <div key={distillery.name} className="bg-white p-5 rounded-xl border border-stone-200 shadow-sm hover:shadow-md transition-all">
+                                        <div className="flex justify-between items-start mb-3">
+                                            <div>
+                                                <h2 className="text-xl font-bold text-stone-800">{distillery.name}</h2>
+                                                <p className="text-stone-500 text-sm">📍 {distillery.town}, {distillery.region}</p>
+                                            </div>
+                                            <span className="font-mono text-stone-400 text-sm">📅 {distillery.year}</span>
+                                        </div>
+                                        <div className="space-y-3">
+                                            <div>
+                                                <span className="text-[10px] font-bold text-stone-400 uppercase block mb-1">Top Expressions</span>
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {distillery.expressions.map(exp => (
+                                                        <span key={exp} className="bg-stone-100 text-stone-600 text-[11px] px-2 py-0.5 rounded-md border border-stone-200">{exp}</span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div className="pt-3 border-t border-stone-100">
+                                                <p className="text-sm text-stone-700 italic">"{distillery.profiles}"</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
+
+```
