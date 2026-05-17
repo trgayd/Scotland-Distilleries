@@ -1,0 +1,45 @@
+@startuml System Architecture
+
+skinparam rectangle {
+  BackgroundColor #FEF3C7
+  BorderColor #92400E
+  FontColor #1C1917
+}
+skinparam database {
+  BackgroundColor #FDE68A
+  BorderColor #92400E
+}
+skinparam actor {
+  BorderColor #92400E
+}
+skinparam arrow {
+  Color #92400E
+}
+
+title Scotland Whisky Platform - System Architecture (Local)
+
+actor User
+actor Admin
+
+rectangle "Docker Compose" {
+
+  rectangle "Frontend\n(Vite + React + TypeScript)\nport 5173" as FE
+
+  rectangle "Backend\n(FastAPI + Python 3.12)\nport 8000" as BE
+
+  database "PostgreSQL 16\nport 5432" as DB
+
+  rectangle "AI Enrichment\n(Claude API)" as AI
+
+}
+
+User --> FE : HTTPS
+Admin --> FE : HTTPS
+FE --> BE : HTTP REST /api/v1
+BE --> DB : SQLAlchemy async
+Admin --> BE : trigger enrichment
+BE --> AI : Anthropic SDK
+AI --> BE : structured JSON
+BE --> DB : write enriched data
+
+@enduml

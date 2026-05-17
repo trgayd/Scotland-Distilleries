@@ -1,0 +1,65 @@
+@startuml API Structure
+
+skinparam rectangle {
+  BackgroundColor #FEF3C7
+  BorderColor #92400E
+  FontColor #1C1917
+}
+skinparam arrow {
+  Color #92400E
+}
+
+title Scotland Whisky Platform - API /api/v1
+
+package "Auth" {
+  [POST /auth/register]
+  [POST /auth/login]
+  [POST /auth/logout]
+  [GET /auth/me]
+}
+
+package "Distilleries (public)" {
+  [GET /distilleries]
+  [GET /distilleries/{id}]
+  [GET /distilleries/{id}/whiskies]
+}
+
+package "Whiskies (public)" {
+  [GET /whiskies]
+  [GET /whiskies/{id}]
+  [POST /whiskies/submit]
+}
+
+package "User (authenticated)" {
+  [GET /me/distilleries]
+  [PUT /me/distilleries/{id}]
+  [GET /me/whiskies]
+  [PUT /me/whiskies/{id}]
+}
+
+package "Admin (admin role)" {
+  [GET /admin/submissions]
+  [PUT /admin/submissions/{id}]
+  [POST /admin/enrich/distilleries]
+  [GET /admin/enrichment-logs]
+}
+
+note right of [GET /distilleries]
+  Query params:
+  region, production_style,
+  search, sort, page
+end note
+
+note right of [PUT /me/whiskies/{id}]
+  Body: tasted, tasted_at,
+  rating, want_to_taste,
+  want_to_buy, owned,
+  tasting_notes
+end note
+
+note right of [PUT /admin/submissions/{id}]
+  Body: status (approved/rejected),
+  reviewer_notes
+end note
+
+@enduml

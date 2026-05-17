@@ -1,0 +1,85 @@
+@startuml User Flows
+
+skinparam activity {
+  BackgroundColor #FEF3C7
+  BorderColor #92400E
+  FontColor #1C1917
+}
+skinparam arrow {
+  Color #92400E
+}
+
+title Scotland Whisky Platform - Key User Flows
+
+|Explorer / Traveller|
+|Enthusiast|
+|Contributor|
+|Moderator|
+
+|Explorer / Traveller|
+start
+:Land on homepage;
+:Browse distilleries;
+:Filter by region;
+:Click distillery card;
+:View detail page\n(history, expressions, map);
+if (Wants to interact?) then (yes)
+  :Prompted to register / log in;
+  :Register with email + password;
+  fork
+    :Mark as Liked;
+  fork again
+    :Mark as Visited\n(add date + notes);
+  fork again
+    :Mark as Want to Visit;
+  end fork
+  :View personal\ndistillery dashboard;
+else (no)
+  :Continue browsing;
+endif
+stop
+
+|Enthusiast|
+start
+:Search for a whisky;
+:Open whisky detail page;
+:Mark as Tasted;
+:Add tasting date + notes;
+:Rate (love / like / neutral / dislike);
+fork
+  :Add to Want to Buy;
+fork again
+  :Mark as Owned;
+end fork
+:View personal whisky dashboard;
+stop
+
+|Contributor|
+start
+:Search for a whisky;
+if (Found?) then (no)
+  :Click Submit a Whisky;
+  :Fill in form\n(name, distillery, age, ABV,\ncask type, notes);
+  :Submit;
+  :See confirmation\n(under review);
+else (yes)
+  :View whisky detail;
+endif
+stop
+
+|Moderator|
+start
+:Log into admin panel;
+:View submission queue;
+:Review submitted whisky;
+if (Approve?) then (yes)
+  :Approve submission;
+  :Whisky published to database;
+  :User notified;
+else (no)
+  :Reject with notes;
+  :User notified;
+endif
+stop
+
+@enduml

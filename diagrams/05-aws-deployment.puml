@@ -1,0 +1,76 @@
+@startuml AWS Deployment Architecture
+
+!define AWSPuml https://raw.githubusercontent.com/awslabs/aws-icons-for-plantuml/v18.0/dist
+
+skinparam rectangle {
+  BackgroundColor #FEF3C7
+  BorderColor #92400E
+  FontColor #1C1917
+}
+skinparam database {
+  BackgroundColor #FDE68A
+  BorderColor #92400E
+}
+skinparam cloud {
+  BackgroundColor #FFFBEB
+  BorderColor #92400E
+}
+skinparam arrow {
+  Color #92400E
+}
+
+title Scotland Whisky Platform - AWS Deployment Architecture
+
+actor User
+
+cloud "AWS" {
+
+  rectangle "Route 53\nDNS" as R53
+
+  rectangle "CloudFront\nCDN + HTTPS" as CF
+
+  rectangle "S3\nReact Build" as S3
+
+  rectangle "API Gateway\nHTTP API" as APIGW
+
+  rectangle "Lambda\n(FastAPI via Mangum)\nor ECS Fargate" as LAMBDA
+
+  database "RDS\nPostgreSQL" as RDS
+
+  rectangle "Secrets Manager\nEnv vars + credentials" as SM
+
+  rectangle "Cognito\n(future: user auth)" as COGNITO
+
+  rectangle "Lambda\nAI Enrichment Job" as AIWORKER
+
+  rectangle "Claude API\n(Anthropic)" as CLAUDE
+
+}
+
+User --> R53 : DNS lookup
+R53 --> CF : route
+CF --> S3 : serve React app
+CF --> APIGW : /api/v1/*
+APIG --> LAMBDA : proxy
+LAMBDA --> RDS : SQLAlchemy
+LAMBDA --> SM : read secrets
+LAMBDA --> COGNITO : verify tokens
+AIWORKER --> RDS : read/write
+AIWORKER --> CLAUDE : enrichment
+AIWORKER --> SM : read API key
+
+note right of LAMBDA
+  Deployed via AWS CDK
+  Separate stacks:
+  - networking
+  - database
+  - backend
+  - frontend
+end note
+
+note right of RDS
+  Private subnet
+  Multi-AZ in production
+end note
+
+@enduml
