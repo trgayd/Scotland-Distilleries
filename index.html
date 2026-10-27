@@ -12,17 +12,16 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
         .font-serif { font-family: 'Lora', serif; }
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #a8a29e; }
+        /* Region chips scroll horizontally on mobile; the bar itself is the affordance. */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-stone-50 text-stone-900">
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useMemo } = React;
+        const { useState, useMemo, useEffect } = React;
 
         const WHISKY_DATA = [
             // SPEYSIDE
@@ -44,7 +43,7 @@
             { name: "Glenrothes", region: "Speyside", town: "Rothes", year: 1879, expressions: ["12 Year Old", "Maker's Cut", "18 Year Old"], profiles: "Berry fruits, vanilla, spice, mellow" },
             { name: "Tamdhu", region: "Speyside", town: "Knockando", year: 1897, expressions: ["12 Year Old", "15 Year Old", "Batch Strength"], profiles: "Sherry, spice, cinnamon, toffee" },
             { name: "Knockando", region: "Speyside", town: "Knockando", year: 1898, expressions: ["12 Year Old", "15 Year Old", "21 Year Old"], profiles: "Nutty, floral, honey, smooth" },
-            { name: "Glendullan", region: "Speyside", town: "Dufftown", year: 1897, expressions: ["Singletton of Glendullan 12", "Select", "18 Year Old"], profiles: "Fresh fruit, light, grassy" },
+            { name: "Glendullan", region: "Speyside", town: "Dufftown", year: 1897, expressions: ["Singleton of Glendullan 12", "Select", "18 Year Old"], profiles: "Fresh fruit, light, grassy" },
             { name: "Dufftown", region: "Speyside", town: "Dufftown", year: 1895, expressions: ["Singleton of Dufftown 12", "15 Year Old", "Tailfire"], profiles: "Nutty, spicy, brown sugar" },
 
             // HIGHLANDS
@@ -75,7 +74,7 @@
             // ISLAY
             { name: "Ardbeg", region: "Islay", town: "Port Ellen", year: 1815, expressions: ["10 Year Old", "Uigeadail", "Corryvreckan"], profiles: "Peat monster, smoke, lemon, sea salt" },
             { name: "Bowmore", region: "Islay", town: "Bowmore", year: 1779, expressions: ["12 Year Old", "15 Year Old", "18 Year Old"], profiles: "Balanced smoke, tropical fruit, sea air" },
-            { name: "Bruichladdich", region: "Islay", town: "Port Charlotte", year: 1881, expressions: ["The Classic Laddie", "Port Charlotte", "Octomore"], profiles: "Unpeated Islay, floral, coastal, barley" },
+            { name: "Bruichladdich", region: "Islay", town: "Bruichladdich", year: 1881, expressions: ["The Classic Laddie", "Port Charlotte", "Octomore"], profiles: "Unpeated core, floral, coastal, barley; heavily peated as Port Charlotte and Octomore" },
             { name: "Bunnahabhain", region: "Islay", town: "Port Askaig", year: 1881, expressions: ["12 Year Old", "18 Year Old", "Toiteach A Dhà"], profiles: "Unpeated/lightly peated, nutty, coastal" },
             { name: "Caol Ila", region: "Islay", town: "Port Askaig", year: 1846, expressions: ["12 Year Old", "18 Year Old", "Moch"], profiles: "Peat smoke, olive oil, lemon, sea air" },
             { name: "Kilchoman", region: "Islay", town: "Kilchoman", year: 2005, expressions: ["Machir Bay", "Sanaig", "100% Islay"], profiles: "Farm distillery, clean smoke, vanilla" },
@@ -98,9 +97,9 @@
             // CAMPBELTOWN
             { name: "Glen Scotia", region: "Campbeltown", town: "Campbeltown", year: 1832, expressions: ["15 Year Old", "Victoriana", "Double Cask"], profiles: "Oily, coastal, salty, fruity" },
             { name: "Glengyle (Kilkerran)", region: "Campbeltown", town: "Campbeltown", year: 2004, expressions: ["12 Year Old", "8 Year Old CS", "Heavily Peated"], profiles: "Complex, earthy smoke, honey, citrus" },
-            { name: "Springbank", region: "Campbeltown", town: "Campbeltown", year: 1828, expressions: ["10 Year Old", "15 Year Old", "12 Year Old Cask Strength"], profiles: "Handmade, oily, industrial, brine, fruit" },
-            { name: "Longrow (at Springbank)", region: "Campbeltown", town: "Campbeltown", year: 1973, expressions: ["Peated", "18 Year Old", "Red Edition"], profiles: "Heavily peated, earthy, medicinal" },
-            { name: "Hazelburn (at Springbank)", region: "Campbeltown", town: "Campbeltown", year: 1997, expressions: ["10 Year Old", "21 Year Old", "Sherry Wood"], profiles: "Triple distilled, unpeated, creamy" },
+            // Longrow (peated, 1973) and Hazelburn (triple distilled, 1997) are brands
+            // distilled at Springbank, not distilleries — they belong in the whisky table.
+            { name: "Springbank", region: "Campbeltown", town: "Campbeltown", year: 1828, expressions: ["10 Year Old", "15 Year Old", "Longrow Peated", "Hazelburn 10"], profiles: "Handmade, oily, industrial, brine, fruit; also makes peated Longrow and triple-distilled Hazelburn" },
 
             // ISLANDS
             { name: "Arran (Lochranza)", region: "Island", town: "Lochranza", year: 1995, expressions: ["10 Year Old", "Quarter Cask", "Amarone Cask"], profiles: "Bright, citrus, tropical fruit" },
@@ -112,53 +111,183 @@
         ];
 
         const REGIONS = ["All", "Speyside", "Highland", "Islay", "Lowland", "Campbeltown", "Island"];
+        const TOTAL = WHISKY_DATA.length;
+
+        const MARK_TYPES = [
+            { id: "liked", label: "Liked" },
+            { id: "visited", label: "Visited" },
+            { id: "wantToVisit", label: "To visit" },
+        ];
+
+        // Marks live only in this browser. Keyed by distillery name for now; the schema in
+        // docs/design.md moves to UUIDs, so a migration will be needed when the API lands.
+        const MARKS_KEY = "swa.marks.v1";
+
+        // localStorage throws outright in some privacy modes, so every access is guarded.
+        const loadMarks = () => {
+            try {
+                const raw = localStorage.getItem(MARKS_KEY);
+                const parsed = raw ? JSON.parse(raw) : null;
+                return parsed && typeof parsed === "object" ? parsed : {};
+            } catch {
+                return {};
+            }
+        };
+
+        const SearchInput = ({ value, onChange }) => (
+            <input
+                type="search"
+                aria-label="Search distilleries by name, town, region or flavour"
+                placeholder="Search name, town, region, flavour..."
+                className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none shadow-sm"
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+            />
+        );
+
+        // Two tones: amber card in the desktop sidebar, light pill in the mobile toolbar.
+        const SortToggle = ({ sortOrder, setSortOrder, tone }) => {
+            const dark = tone === "dark";
+            const btn = (active) => {
+                const base = "flex-1 min-h-[44px] px-3 text-sm font-medium rounded transition-colors";
+                if (dark) return `${base} ${active ? "bg-amber-600 text-white shadow" : "text-amber-100 hover:text-white"}`;
+                return `${base} ${active ? "bg-white text-amber-900 shadow-sm" : "text-stone-600"}`;
+            };
+            return (
+                <div className={`flex p-1 rounded-lg ${dark ? "bg-amber-800/50" : "bg-stone-200/70"}`} role="group" aria-label="Sort by founding year">
+                    <button onClick={() => setSortOrder("asc")} aria-pressed={sortOrder === "asc"} className={btn(sortOrder === "asc")}>Oldest</button>
+                    <button onClick={() => setSortOrder("desc")} aria-pressed={sortOrder === "desc"} className={btn(sortOrder === "desc")}>Newest</button>
+                </div>
+            );
+        };
+
+        const MarkButtons = ({ name, marks, toggleMark }) => {
+            const m = marks[name] || {};
+            return (
+                <div className="flex gap-1.5 pt-3 border-t border-stone-100">
+                    {MARK_TYPES.map(t => (
+                        <button
+                            key={t.id}
+                            onClick={() => toggleMark(name, t.id)}
+                            aria-pressed={!!m[t.id]}
+                            aria-label={`${t.label}: ${name}`}
+                            className={`flex-1 min-h-[44px] px-2 rounded-lg text-xs font-medium border transition-colors ${m[t.id] ? "bg-amber-600 text-white border-amber-600" : "bg-white text-stone-600 border-stone-200 hover:border-stone-300"}`}
+                        >
+                            {t.label}
+                        </button>
+                    ))}
+                </div>
+            );
+        };
 
         const App = () => {
             const [searchTerm, setSearchTerm] = useState("");
             const [selectedRegion, setSelectedRegion] = useState("All");
             const [sortOrder, setSortOrder] = useState("asc");
+            const [markFilter, setMarkFilter] = useState("all");
+            const [marks, setMarks] = useState(loadMarks);
+
+            useEffect(() => {
+                try {
+                    localStorage.setItem(MARKS_KEY, JSON.stringify(marks));
+                } catch {
+                    /* Storage full or blocked: marks still work for this session. */
+                }
+            }, [marks]);
+
+            // Falsy flags are dropped so an unmarked distillery leaves no entry behind.
+            const toggleMark = (name, type) => setMarks(prev => {
+                const next = { ...(prev[name] || {}), [type]: !(prev[name] || {})[type] };
+                const kept = Object.fromEntries(Object.entries(next).filter(([, v]) => v));
+                const out = { ...prev };
+                if (Object.keys(kept).length) out[name] = kept; else delete out[name];
+                return out;
+            });
+
+            const markCounts = useMemo(() => {
+                const counts = Object.fromEntries(MARK_TYPES.map(t => [t.id, 0]));
+                Object.values(marks).forEach(m => MARK_TYPES.forEach(t => { if (m[t.id]) counts[t.id]++; }));
+                return counts;
+            }, [marks]);
+
+            const hasMarks = Object.keys(marks).length > 0;
+
+            const clearFilters = () => { setSearchTerm(""); setSelectedRegion("All"); setMarkFilter("all"); };
 
             const filteredDistilleries = useMemo(() => {
+                const q = searchTerm.trim().toLowerCase();
                 return WHISKY_DATA
                     .filter(d => {
-                        const matchesSearch = d.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                              d.town.toLowerCase().includes(searchTerm.toLowerCase());
+                        const matchesSearch = !q ||
+                            d.name.toLowerCase().includes(q) ||
+                            d.town.toLowerCase().includes(q) ||
+                            d.region.toLowerCase().includes(q) ||
+                            d.profiles.toLowerCase().includes(q);
                         const matchesRegion = selectedRegion === "All" || d.region === selectedRegion;
-                        return matchesSearch && matchesRegion;
+                        const matchesMark = markFilter === "all" || !!(marks[d.name] || {})[markFilter];
+                        return matchesSearch && matchesRegion && matchesMark;
                     })
                     .sort((a, b) => sortOrder === "asc" ? a.year - b.year : b.year - a.year);
-            }, [searchTerm, selectedRegion, sortOrder]);
+            }, [searchTerm, selectedRegion, sortOrder, markFilter, marks]);
 
             return (
                 <div className="min-h-screen p-4 md:p-8">
-                    <header className="max-w-6xl mx-auto mb-8 border-b border-stone-200 pb-6">
+                    <header className="max-w-6xl mx-auto mb-4 lg:mb-8 lg:border-b lg:border-stone-200 lg:pb-6">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div>
-                                <h1 className="text-4xl font-serif font-bold text-stone-800">🥃 Scotch Whisky Archive</h1>
-                                <p className="text-stone-500 mt-2">A comprehensive database of 100+ distilleries by heritage and character.</p>
+                                <h1 className="text-3xl sm:text-4xl font-serif font-bold text-stone-800">🥃 Scotch Whisky Archive</h1>
+                                <p className="text-stone-500 mt-2">A database of {TOTAL} distilleries by heritage and character.</p>
                             </div>
-                            <div className="relative w-full md:w-80">
-                                <input 
-                                    type="text"
-                                    placeholder="Search by name or town..."
-                                    className="w-full px-4 py-2 bg-white border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none shadow-sm"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
+                            {/* Desktop search; on mobile it lives in the sticky toolbar instead. */}
+                            <div className="hidden lg:block w-full md:w-80">
+                                <SearchInput value={searchTerm} onChange={setSearchTerm} />
                             </div>
                         </div>
                     </header>
 
+                    {/* Mobile toolbar: keeps search and regions reachable without scrolling back up. */}
+                    <div className="lg:hidden sticky top-0 z-20 -mx-4 px-4 py-3 mb-4 bg-stone-50/95 backdrop-blur border-b border-stone-200 space-y-3">
+                        <SearchInput value={searchTerm} onChange={setSearchTerm} />
+                        <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4">
+                            {REGIONS.map(region => (
+                                <button
+                                    key={region}
+                                    onClick={() => setSelectedRegion(region)}
+                                    aria-pressed={selectedRegion === region}
+                                    className={`shrink-0 min-h-[44px] px-4 rounded-full text-sm font-medium border transition-colors ${selectedRegion === region ? "bg-amber-600 text-white border-amber-600" : "bg-white text-stone-600 border-stone-200"}`}
+                                >
+                                    {region}
+                                </button>
+                            ))}
+                        </div>
+                        {/* Appears only once something is marked, so the default view stays as short as before. */}
+                        {hasMarks && (
+                            <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4">
+                                {[{ id: "all", label: "All" }, ...MARK_TYPES].map(f => (
+                                    <button
+                                        key={f.id}
+                                        onClick={() => setMarkFilter(f.id)}
+                                        aria-pressed={markFilter === f.id}
+                                        className={`shrink-0 min-h-[44px] px-4 rounded-full text-sm font-medium border transition-colors ${markFilter === f.id ? "bg-stone-800 text-white border-stone-800" : "bg-white text-stone-600 border-stone-200"}`}
+                                    >
+                                        {f.label}{f.id !== "all" && ` ${markCounts[f.id]}`}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
                     <main className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-8">
-                        <div className="lg:col-span-1 space-y-6">
+                        <div className="hidden lg:block lg:col-span-1 space-y-6">
                             <section className="bg-white p-5 rounded-xl shadow-sm border border-stone-100">
-                                <h3 className="font-bold text-stone-700 mb-4 uppercase text-xs tracking-widest">Browse Regions</h3>
+                                <h2 className="font-bold text-stone-700 mb-4 uppercase text-xs tracking-widest">Browse Regions</h2>
                                 <div className="flex flex-col gap-1">
                                     {REGIONS.map(region => (
                                         <button
                                             key={region}
                                             onClick={() => setSelectedRegion(region)}
-                                            className={`text-left px-3 py-2 rounded-md transition-colors ${selectedRegion === region ? "bg-amber-100 text-amber-900 font-medium" : "hover:bg-stone-100 text-stone-600"}`}
+                                            aria-pressed={selectedRegion === region}
+                                            className={`text-left px-3 min-h-[44px] rounded-md transition-colors ${selectedRegion === region ? "bg-amber-100 text-amber-900 font-medium" : "hover:bg-stone-100 text-stone-600"}`}
                                         >
                                             {region}
                                         </button>
@@ -167,41 +296,93 @@
                             </section>
 
                             <section className="bg-amber-900 text-white p-5 rounded-xl shadow-md">
-                                <h3 className="font-bold mb-3">Heritage Sort</h3>
-                                <div className="flex bg-amber-800/50 p-1 rounded-lg">
-                                    <button onClick={() => setSortOrder('asc')} className={`flex-1 py-1.5 text-sm rounded ${sortOrder === 'asc' ? 'bg-amber-600 shadow' : ''}`}>Oldest</button>
-                                    <button onClick={() => setSortOrder('desc')} className={`flex-1 py-1.5 text-sm rounded ${sortOrder === 'desc' ? 'bg-amber-600 shadow' : ''}`}>Newest</button>
-                                </div>
+                                <h2 className="font-bold mb-3">Heritage Sort</h2>
+                                <SortToggle sortOrder={sortOrder} setSortOrder={setSortOrder} tone="dark" />
                             </section>
+
+                            {hasMarks && (
+                                <section className="bg-white p-5 rounded-xl shadow-sm border border-stone-100">
+                                    <h2 className="font-bold text-stone-700 mb-4 uppercase text-xs tracking-widest">My List</h2>
+                                    <div className="flex flex-col gap-1">
+                                        {[{ id: "all", label: "All" }, ...MARK_TYPES].map(f => (
+                                            <button
+                                                key={f.id}
+                                                onClick={() => setMarkFilter(f.id)}
+                                                aria-pressed={markFilter === f.id}
+                                                className={`flex items-center justify-between text-left px-3 min-h-[44px] rounded-md transition-colors ${markFilter === f.id ? "bg-stone-800 text-white font-medium" : "hover:bg-stone-100 text-stone-600"}`}
+                                            >
+                                                <span>{f.label}</span>
+                                                {f.id !== "all" && <span className="text-xs opacity-70">{markCounts[f.id]}</span>}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </section>
+                            )}
                         </div>
 
                         <div className="lg:col-span-3 space-y-4">
+                            <div className="flex items-center justify-between gap-4">
+                                <p className="text-sm text-stone-500" role="status" aria-live="polite">
+                                    {filteredDistilleries.length === TOTAL
+                                        ? `${TOTAL} distilleries`
+                                        : `${filteredDistilleries.length} of ${TOTAL} distilleries`}
+                                </p>
+                                <div className="lg:hidden w-44 shrink-0">
+                                    <SortToggle sortOrder={sortOrder} setSortOrder={setSortOrder} tone="light" />
+                                </div>
+                            </div>
+
+                            {filteredDistilleries.length === 0 ? (
+                                <div className="bg-white border border-stone-200 rounded-xl p-8 text-center">
+                                    <p className="text-3xl mb-3" aria-hidden="true">🥃</p>
+                                    <h2 className="font-serif text-xl font-bold text-stone-800 mb-1">No distilleries found</h2>
+                                    <p className="text-stone-500 text-sm mb-5">
+                                        Nothing matches{" "}
+                                        <strong className="font-medium text-stone-700">
+                                            {[
+                                                searchTerm.trim() && `“${searchTerm.trim()}”`,
+                                                selectedRegion !== "All" && selectedRegion,
+                                                markFilter !== "all" && MARK_TYPES.find(t => t.id === markFilter).label,
+                                            ].filter(Boolean).join(" + ")}
+                                        </strong>.
+                                    </p>
+                                    <button
+                                        onClick={clearFilters}
+                                        className="min-h-[44px] px-5 rounded-lg bg-amber-600 text-white text-sm font-medium hover:bg-amber-700 transition-colors"
+                                    >
+                                        Clear filters
+                                    </button>
+                                </div>
+                            ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {filteredDistilleries.map(distillery => (
                                     <div key={distillery.name} className="bg-white p-5 rounded-xl border border-stone-200 shadow-sm hover:shadow-md transition-all">
                                         <div className="flex justify-between items-start mb-3">
                                             <div>
                                                 <h2 className="text-xl font-bold text-stone-800">{distillery.name}</h2>
-                                                <p className="text-stone-500 text-sm">📍 {distillery.town}, {distillery.region}</p>
+                                                {/* Campbeltown is both a town and a region; don't repeat it. */}
+                                                <p className="text-stone-500 text-sm">📍 {distillery.town === distillery.region ? distillery.region : `${distillery.town}, ${distillery.region}`}</p>
                                             </div>
-                                            <span className="font-mono text-stone-400 text-sm">📅 {distillery.year}</span>
+                                            <span className="font-mono text-stone-500 text-sm shrink-0">📅 {distillery.year}</span>
                                         </div>
                                         <div className="space-y-3">
                                             <div>
-                                                <span className="text-[10px] font-bold text-stone-400 uppercase block mb-1">Top Expressions</span>
+                                                <span className="text-xs font-bold text-stone-500 uppercase tracking-wide block mb-1.5">Top Expressions</span>
                                                 <div className="flex flex-wrap gap-1.5">
                                                     {distillery.expressions.map(exp => (
-                                                        <span key={exp} className="bg-stone-100 text-stone-600 text-[11px] px-2 py-0.5 rounded-md border border-stone-200">{exp}</span>
+                                                        <span key={exp} className="bg-stone-100 text-stone-600 text-xs px-2 py-1 rounded-md border border-stone-200">{exp}</span>
                                                     ))}
                                                 </div>
                                             </div>
                                             <div className="pt-3 border-t border-stone-100">
                                                 <p className="text-sm text-stone-700 italic">"{distillery.profiles}"</p>
                                             </div>
+                                            <MarkButtons name={distillery.name} marks={marks} toggleMark={toggleMark} />
                                         </div>
                                     </div>
                                 ))}
                             </div>
+                            )}
                         </div>
                     </main>
                 </div>
@@ -213,5 +394,3 @@
     </script>
 </body>
 </html>
-
-```
