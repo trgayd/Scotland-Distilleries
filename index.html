@@ -251,7 +251,8 @@
                                         <div className="flex justify-between items-start mb-3">
                                             <div>
                                                 <h2 className="text-xl font-bold text-stone-800">{distillery.name}</h2>
-                                                <p className="text-stone-500 text-sm">📍 {distillery.town}, {distillery.region}</p>
+                                                {/* Campbeltown is both a town and a region; don't repeat it. */}
+                                                <p className="text-stone-500 text-sm">📍 {distillery.town === distillery.region ? distillery.region : `${distillery.town}, ${distillery.region}`}</p>
                                             </div>
                                             <span className="font-mono text-stone-500 text-sm shrink-0">📅 {distillery.year}</span>
                                         </div>
