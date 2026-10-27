@@ -43,7 +43,7 @@
             { name: "Glenrothes", region: "Speyside", town: "Rothes", year: 1879, expressions: ["12 Year Old", "Maker's Cut", "18 Year Old"], profiles: "Berry fruits, vanilla, spice, mellow" },
             { name: "Tamdhu", region: "Speyside", town: "Knockando", year: 1897, expressions: ["12 Year Old", "15 Year Old", "Batch Strength"], profiles: "Sherry, spice, cinnamon, toffee" },
             { name: "Knockando", region: "Speyside", town: "Knockando", year: 1898, expressions: ["12 Year Old", "15 Year Old", "21 Year Old"], profiles: "Nutty, floral, honey, smooth" },
-            { name: "Glendullan", region: "Speyside", town: "Dufftown", year: 1897, expressions: ["Singletton of Glendullan 12", "Select", "18 Year Old"], profiles: "Fresh fruit, light, grassy" },
+            { name: "Glendullan", region: "Speyside", town: "Dufftown", year: 1897, expressions: ["Singleton of Glendullan 12", "Select", "18 Year Old"], profiles: "Fresh fruit, light, grassy" },
             { name: "Dufftown", region: "Speyside", town: "Dufftown", year: 1895, expressions: ["Singleton of Dufftown 12", "15 Year Old", "Tailfire"], profiles: "Nutty, spicy, brown sugar" },
 
             // HIGHLANDS
@@ -74,7 +74,7 @@
             // ISLAY
             { name: "Ardbeg", region: "Islay", town: "Port Ellen", year: 1815, expressions: ["10 Year Old", "Uigeadail", "Corryvreckan"], profiles: "Peat monster, smoke, lemon, sea salt" },
             { name: "Bowmore", region: "Islay", town: "Bowmore", year: 1779, expressions: ["12 Year Old", "15 Year Old", "18 Year Old"], profiles: "Balanced smoke, tropical fruit, sea air" },
-            { name: "Bruichladdich", region: "Islay", town: "Port Charlotte", year: 1881, expressions: ["The Classic Laddie", "Port Charlotte", "Octomore"], profiles: "Unpeated Islay, floral, coastal, barley" },
+            { name: "Bruichladdich", region: "Islay", town: "Bruichladdich", year: 1881, expressions: ["The Classic Laddie", "Port Charlotte", "Octomore"], profiles: "Unpeated core, floral, coastal, barley; heavily peated as Port Charlotte and Octomore" },
             { name: "Bunnahabhain", region: "Islay", town: "Port Askaig", year: 1881, expressions: ["12 Year Old", "18 Year Old", "Toiteach A Dhà"], profiles: "Unpeated/lightly peated, nutty, coastal" },
             { name: "Caol Ila", region: "Islay", town: "Port Askaig", year: 1846, expressions: ["12 Year Old", "18 Year Old", "Moch"], profiles: "Peat smoke, olive oil, lemon, sea air" },
             { name: "Kilchoman", region: "Islay", town: "Kilchoman", year: 2005, expressions: ["Machir Bay", "Sanaig", "100% Islay"], profiles: "Farm distillery, clean smoke, vanilla" },
@@ -97,9 +97,9 @@
             // CAMPBELTOWN
             { name: "Glen Scotia", region: "Campbeltown", town: "Campbeltown", year: 1832, expressions: ["15 Year Old", "Victoriana", "Double Cask"], profiles: "Oily, coastal, salty, fruity" },
             { name: "Glengyle (Kilkerran)", region: "Campbeltown", town: "Campbeltown", year: 2004, expressions: ["12 Year Old", "8 Year Old CS", "Heavily Peated"], profiles: "Complex, earthy smoke, honey, citrus" },
-            { name: "Springbank", region: "Campbeltown", town: "Campbeltown", year: 1828, expressions: ["10 Year Old", "15 Year Old", "12 Year Old Cask Strength"], profiles: "Handmade, oily, industrial, brine, fruit" },
-            { name: "Longrow (at Springbank)", region: "Campbeltown", town: "Campbeltown", year: 1973, expressions: ["Peated", "18 Year Old", "Red Edition"], profiles: "Heavily peated, earthy, medicinal" },
-            { name: "Hazelburn (at Springbank)", region: "Campbeltown", town: "Campbeltown", year: 1997, expressions: ["10 Year Old", "21 Year Old", "Sherry Wood"], profiles: "Triple distilled, unpeated, creamy" },
+            // Longrow (peated, 1973) and Hazelburn (triple distilled, 1997) are brands
+            // distilled at Springbank, not distilleries — they belong in the whisky table.
+            { name: "Springbank", region: "Campbeltown", town: "Campbeltown", year: 1828, expressions: ["10 Year Old", "15 Year Old", "Longrow Peated", "Hazelburn 10"], profiles: "Handmade, oily, industrial, brine, fruit; also makes peated Longrow and triple-distilled Hazelburn" },
 
             // ISLANDS
             { name: "Arran (Lochranza)", region: "Island", town: "Lochranza", year: 1995, expressions: ["10 Year Old", "Quarter Cask", "Amarone Cask"], profiles: "Bright, citrus, tropical fruit" },
