@@ -21,7 +21,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useMemo } = React;
+        const { useState, useMemo, useEffect } = React;
 
         const WHISKY_DATA = [
             // SPEYSIDE
@@ -113,6 +113,27 @@
         const REGIONS = ["All", "Speyside", "Highland", "Islay", "Lowland", "Campbeltown", "Island"];
         const TOTAL = WHISKY_DATA.length;
 
+        const MARK_TYPES = [
+            { id: "liked", label: "Liked" },
+            { id: "visited", label: "Visited" },
+            { id: "wantToVisit", label: "To visit" },
+        ];
+
+        // Marks live only in this browser. Keyed by distillery name for now; the schema in
+        // docs/design.md moves to UUIDs, so a migration will be needed when the API lands.
+        const MARKS_KEY = "swa.marks.v1";
+
+        // localStorage throws outright in some privacy modes, so every access is guarded.
+        const loadMarks = () => {
+            try {
+                const raw = localStorage.getItem(MARKS_KEY);
+                const parsed = raw ? JSON.parse(raw) : null;
+                return parsed && typeof parsed === "object" ? parsed : {};
+            } catch {
+                return {};
+            }
+        };
+
         const SearchInput = ({ value, onChange }) => (
             <input
                 type="search"
@@ -140,10 +161,58 @@
             );
         };
 
+        const MarkButtons = ({ name, marks, toggleMark }) => {
+            const m = marks[name] || {};
+            return (
+                <div className="flex gap-1.5 pt-3 border-t border-stone-100">
+                    {MARK_TYPES.map(t => (
+                        <button
+                            key={t.id}
+                            onClick={() => toggleMark(name, t.id)}
+                            aria-pressed={!!m[t.id]}
+                            aria-label={`${t.label}: ${name}`}
+                            className={`flex-1 min-h-[44px] px-2 rounded-lg text-xs font-medium border transition-colors ${m[t.id] ? "bg-amber-600 text-white border-amber-600" : "bg-white text-stone-600 border-stone-200 hover:border-stone-300"}`}
+                        >
+                            {t.label}
+                        </button>
+                    ))}
+                </div>
+            );
+        };
+
         const App = () => {
             const [searchTerm, setSearchTerm] = useState("");
             const [selectedRegion, setSelectedRegion] = useState("All");
             const [sortOrder, setSortOrder] = useState("asc");
+            const [markFilter, setMarkFilter] = useState("all");
+            const [marks, setMarks] = useState(loadMarks);
+
+            useEffect(() => {
+                try {
+                    localStorage.setItem(MARKS_KEY, JSON.stringify(marks));
+                } catch {
+                    /* Storage full or blocked: marks still work for this session. */
+                }
+            }, [marks]);
+
+            // Falsy flags are dropped so an unmarked distillery leaves no entry behind.
+            const toggleMark = (name, type) => setMarks(prev => {
+                const next = { ...(prev[name] || {}), [type]: !(prev[name] || {})[type] };
+                const kept = Object.fromEntries(Object.entries(next).filter(([, v]) => v));
+                const out = { ...prev };
+                if (Object.keys(kept).length) out[name] = kept; else delete out[name];
+                return out;
+            });
+
+            const markCounts = useMemo(() => {
+                const counts = Object.fromEntries(MARK_TYPES.map(t => [t.id, 0]));
+                Object.values(marks).forEach(m => MARK_TYPES.forEach(t => { if (m[t.id]) counts[t.id]++; }));
+                return counts;
+            }, [marks]);
+
+            const hasMarks = Object.keys(marks).length > 0;
+
+            const clearFilters = () => { setSearchTerm(""); setSelectedRegion("All"); setMarkFilter("all"); };
 
             const filteredDistilleries = useMemo(() => {
                 const q = searchTerm.trim().toLowerCase();
@@ -155,10 +224,11 @@
                             d.region.toLowerCase().includes(q) ||
                             d.profiles.toLowerCase().includes(q);
                         const matchesRegion = selectedRegion === "All" || d.region === selectedRegion;
-                        return matchesSearch && matchesRegion;
+                        const matchesMark = markFilter === "all" || !!(marks[d.name] || {})[markFilter];
+                        return matchesSearch && matchesRegion && matchesMark;
                     })
                     .sort((a, b) => sortOrder === "asc" ? a.year - b.year : b.year - a.year);
-            }, [searchTerm, selectedRegion, sortOrder]);
+            }, [searchTerm, selectedRegion, sortOrder, markFilter, marks]);
 
             return (
                 <div className="min-h-screen p-4 md:p-8">
@@ -190,6 +260,21 @@
                                 </button>
                             ))}
                         </div>
+                        {/* Appears only once something is marked, so the default view stays as short as before. */}
+                        {hasMarks && (
+                            <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4">
+                                {[{ id: "all", label: "All" }, ...MARK_TYPES].map(f => (
+                                    <button
+                                        key={f.id}
+                                        onClick={() => setMarkFilter(f.id)}
+                                        aria-pressed={markFilter === f.id}
+                                        className={`shrink-0 min-h-[44px] px-4 rounded-full text-sm font-medium border transition-colors ${markFilter === f.id ? "bg-stone-800 text-white border-stone-800" : "bg-white text-stone-600 border-stone-200"}`}
+                                    >
+                                        {f.label}{f.id !== "all" && ` ${markCounts[f.id]}`}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     <main className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-8">
@@ -214,6 +299,25 @@
                                 <h2 className="font-bold mb-3">Heritage Sort</h2>
                                 <SortToggle sortOrder={sortOrder} setSortOrder={setSortOrder} tone="dark" />
                             </section>
+
+                            {hasMarks && (
+                                <section className="bg-white p-5 rounded-xl shadow-sm border border-stone-100">
+                                    <h2 className="font-bold text-stone-700 mb-4 uppercase text-xs tracking-widest">My List</h2>
+                                    <div className="flex flex-col gap-1">
+                                        {[{ id: "all", label: "All" }, ...MARK_TYPES].map(f => (
+                                            <button
+                                                key={f.id}
+                                                onClick={() => setMarkFilter(f.id)}
+                                                aria-pressed={markFilter === f.id}
+                                                className={`flex items-center justify-between text-left px-3 min-h-[44px] rounded-md transition-colors ${markFilter === f.id ? "bg-stone-800 text-white font-medium" : "hover:bg-stone-100 text-stone-600"}`}
+                                            >
+                                                <span>{f.label}</span>
+                                                {f.id !== "all" && <span className="text-xs opacity-70">{markCounts[f.id]}</span>}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </section>
+                            )}
                         </div>
 
                         <div className="lg:col-span-3 space-y-4">
@@ -233,12 +337,17 @@
                                     <p className="text-3xl mb-3" aria-hidden="true">🥃</p>
                                     <h2 className="font-serif text-xl font-bold text-stone-800 mb-1">No distilleries found</h2>
                                     <p className="text-stone-500 text-sm mb-5">
-                                        Nothing matches {searchTerm.trim() && <strong className="font-medium text-stone-700">“{searchTerm.trim()}”</strong>}
-                                        {searchTerm.trim() && selectedRegion !== "All" && " in "}
-                                        {selectedRegion !== "All" && <strong className="font-medium text-stone-700">{selectedRegion}</strong>}.
+                                        Nothing matches{" "}
+                                        <strong className="font-medium text-stone-700">
+                                            {[
+                                                searchTerm.trim() && `“${searchTerm.trim()}”`,
+                                                selectedRegion !== "All" && selectedRegion,
+                                                markFilter !== "all" && MARK_TYPES.find(t => t.id === markFilter).label,
+                                            ].filter(Boolean).join(" + ")}
+                                        </strong>.
                                     </p>
                                     <button
-                                        onClick={() => { setSearchTerm(""); setSelectedRegion("All"); }}
+                                        onClick={clearFilters}
                                         className="min-h-[44px] px-5 rounded-lg bg-amber-600 text-white text-sm font-medium hover:bg-amber-700 transition-colors"
                                     >
                                         Clear filters
@@ -268,6 +377,7 @@
                                             <div className="pt-3 border-t border-stone-100">
                                                 <p className="text-sm text-stone-700 italic">"{distillery.profiles}"</p>
                                             </div>
+                                            <MarkButtons name={distillery.name} marks={marks} toggleMark={toggleMark} />
                                         </div>
                                     </div>
                                 ))}
