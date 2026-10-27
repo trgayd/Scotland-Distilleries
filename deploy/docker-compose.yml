@@ -1,0 +1,12 @@
+# Serves index.html as a static site. Works under rootless Docker; no privileged
+# ports are used. Override BIND_ADDR and PORT in .env to change where it listens.
+services:
+  whisky:
+    image: caddy:2-alpine
+    container_name: scotch-whisky-archive
+    restart: unless-stopped
+    ports:
+      - "${BIND_ADDR:-127.0.0.1}:${PORT:-8080}:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ../index.html:/srv/index.html:ro

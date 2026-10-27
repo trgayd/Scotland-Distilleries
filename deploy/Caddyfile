@@ -1,0 +1,8 @@
+:80 {
+	root * /srv
+	file_server
+	encode gzip
+
+	# The page is one file loaded fresh each visit; don't let a stale copy stick around.
+	header /index.html Cache-Control "no-cache"
+}
