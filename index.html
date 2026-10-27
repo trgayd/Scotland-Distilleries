@@ -12,10 +12,9 @@
     <style>
         body { font-family: 'Inter', sans-serif; }
         .font-serif { font-family: 'Lora', serif; }
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #a8a29e; }
+        /* Region chips scroll horizontally on mobile; the bar itself is the affordance. */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-stone-50 text-stone-900">
@@ -112,6 +111,34 @@
         ];
 
         const REGIONS = ["All", "Speyside", "Highland", "Islay", "Lowland", "Campbeltown", "Island"];
+        const TOTAL = WHISKY_DATA.length;
+
+        const SearchInput = ({ value, onChange }) => (
+            <input
+                type="search"
+                aria-label="Search distilleries by name, town, region or flavour"
+                placeholder="Search name, town, region, flavour..."
+                className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none shadow-sm"
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+            />
+        );
+
+        // Two tones: amber card in the desktop sidebar, light pill in the mobile toolbar.
+        const SortToggle = ({ sortOrder, setSortOrder, tone }) => {
+            const dark = tone === "dark";
+            const btn = (active) => {
+                const base = "flex-1 min-h-[44px] px-3 text-sm font-medium rounded transition-colors";
+                if (dark) return `${base} ${active ? "bg-amber-600 text-white shadow" : "text-amber-100 hover:text-white"}`;
+                return `${base} ${active ? "bg-white text-amber-900 shadow-sm" : "text-stone-600"}`;
+            };
+            return (
+                <div className={`flex p-1 rounded-lg ${dark ? "bg-amber-800/50" : "bg-stone-200/70"}`} role="group" aria-label="Sort by founding year">
+                    <button onClick={() => setSortOrder("asc")} aria-pressed={sortOrder === "asc"} className={btn(sortOrder === "asc")}>Oldest</button>
+                    <button onClick={() => setSortOrder("desc")} aria-pressed={sortOrder === "desc"} className={btn(sortOrder === "desc")}>Newest</button>
+                </div>
+            );
+        };
 
         const App = () => {
             const [searchTerm, setSearchTerm] = useState("");
@@ -119,10 +146,14 @@
             const [sortOrder, setSortOrder] = useState("asc");
 
             const filteredDistilleries = useMemo(() => {
+                const q = searchTerm.trim().toLowerCase();
                 return WHISKY_DATA
                     .filter(d => {
-                        const matchesSearch = d.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                              d.town.toLowerCase().includes(searchTerm.toLowerCase());
+                        const matchesSearch = !q ||
+                            d.name.toLowerCase().includes(q) ||
+                            d.town.toLowerCase().includes(q) ||
+                            d.region.toLowerCase().includes(q) ||
+                            d.profiles.toLowerCase().includes(q);
                         const matchesRegion = selectedRegion === "All" || d.region === selectedRegion;
                         return matchesSearch && matchesRegion;
                     })
@@ -131,34 +162,47 @@
 
             return (
                 <div className="min-h-screen p-4 md:p-8">
-                    <header className="max-w-6xl mx-auto mb-8 border-b border-stone-200 pb-6">
+                    <header className="max-w-6xl mx-auto mb-4 lg:mb-8 lg:border-b lg:border-stone-200 lg:pb-6">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div>
-                                <h1 className="text-4xl font-serif font-bold text-stone-800">🥃 Scotch Whisky Archive</h1>
-                                <p className="text-stone-500 mt-2">A comprehensive database of 100+ distilleries by heritage and character.</p>
+                                <h1 className="text-3xl sm:text-4xl font-serif font-bold text-stone-800">🥃 Scotch Whisky Archive</h1>
+                                <p className="text-stone-500 mt-2">A database of {TOTAL} distilleries by heritage and character.</p>
                             </div>
-                            <div className="relative w-full md:w-80">
-                                <input 
-                                    type="text"
-                                    placeholder="Search by name or town..."
-                                    className="w-full px-4 py-2 bg-white border border-stone-200 rounded-lg focus:ring-2 focus:ring-amber-500 focus:outline-none shadow-sm"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
+                            {/* Desktop search; on mobile it lives in the sticky toolbar instead. */}
+                            <div className="hidden lg:block w-full md:w-80">
+                                <SearchInput value={searchTerm} onChange={setSearchTerm} />
                             </div>
                         </div>
                     </header>
 
+                    {/* Mobile toolbar: keeps search and regions reachable without scrolling back up. */}
+                    <div className="lg:hidden sticky top-0 z-20 -mx-4 px-4 py-3 mb-4 bg-stone-50/95 backdrop-blur border-b border-stone-200 space-y-3">
+                        <SearchInput value={searchTerm} onChange={setSearchTerm} />
+                        <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-4 px-4">
+                            {REGIONS.map(region => (
+                                <button
+                                    key={region}
+                                    onClick={() => setSelectedRegion(region)}
+                                    aria-pressed={selectedRegion === region}
+                                    className={`shrink-0 min-h-[44px] px-4 rounded-full text-sm font-medium border transition-colors ${selectedRegion === region ? "bg-amber-600 text-white border-amber-600" : "bg-white text-stone-600 border-stone-200"}`}
+                                >
+                                    {region}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
                     <main className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-8">
-                        <div className="lg:col-span-1 space-y-6">
+                        <div className="hidden lg:block lg:col-span-1 space-y-6">
                             <section className="bg-white p-5 rounded-xl shadow-sm border border-stone-100">
-                                <h3 className="font-bold text-stone-700 mb-4 uppercase text-xs tracking-widest">Browse Regions</h3>
+                                <h2 className="font-bold text-stone-700 mb-4 uppercase text-xs tracking-widest">Browse Regions</h2>
                                 <div className="flex flex-col gap-1">
                                     {REGIONS.map(region => (
                                         <button
                                             key={region}
                                             onClick={() => setSelectedRegion(region)}
-                                            className={`text-left px-3 py-2 rounded-md transition-colors ${selectedRegion === region ? "bg-amber-100 text-amber-900 font-medium" : "hover:bg-stone-100 text-stone-600"}`}
+                                            aria-pressed={selectedRegion === region}
+                                            className={`text-left px-3 min-h-[44px] rounded-md transition-colors ${selectedRegion === region ? "bg-amber-100 text-amber-900 font-medium" : "hover:bg-stone-100 text-stone-600"}`}
                                         >
                                             {region}
                                         </button>
@@ -167,15 +211,40 @@
                             </section>
 
                             <section className="bg-amber-900 text-white p-5 rounded-xl shadow-md">
-                                <h3 className="font-bold mb-3">Heritage Sort</h3>
-                                <div className="flex bg-amber-800/50 p-1 rounded-lg">
-                                    <button onClick={() => setSortOrder('asc')} className={`flex-1 py-1.5 text-sm rounded ${sortOrder === 'asc' ? 'bg-amber-600 shadow' : ''}`}>Oldest</button>
-                                    <button onClick={() => setSortOrder('desc')} className={`flex-1 py-1.5 text-sm rounded ${sortOrder === 'desc' ? 'bg-amber-600 shadow' : ''}`}>Newest</button>
-                                </div>
+                                <h2 className="font-bold mb-3">Heritage Sort</h2>
+                                <SortToggle sortOrder={sortOrder} setSortOrder={setSortOrder} tone="dark" />
                             </section>
                         </div>
 
                         <div className="lg:col-span-3 space-y-4">
+                            <div className="flex items-center justify-between gap-4">
+                                <p className="text-sm text-stone-500" role="status" aria-live="polite">
+                                    {filteredDistilleries.length === TOTAL
+                                        ? `${TOTAL} distilleries`
+                                        : `${filteredDistilleries.length} of ${TOTAL} distilleries`}
+                                </p>
+                                <div className="lg:hidden w-44 shrink-0">
+                                    <SortToggle sortOrder={sortOrder} setSortOrder={setSortOrder} tone="light" />
+                                </div>
+                            </div>
+
+                            {filteredDistilleries.length === 0 ? (
+                                <div className="bg-white border border-stone-200 rounded-xl p-8 text-center">
+                                    <p className="text-3xl mb-3" aria-hidden="true">🥃</p>
+                                    <h2 className="font-serif text-xl font-bold text-stone-800 mb-1">No distilleries found</h2>
+                                    <p className="text-stone-500 text-sm mb-5">
+                                        Nothing matches {searchTerm.trim() && <strong className="font-medium text-stone-700">“{searchTerm.trim()}”</strong>}
+                                        {searchTerm.trim() && selectedRegion !== "All" && " in "}
+                                        {selectedRegion !== "All" && <strong className="font-medium text-stone-700">{selectedRegion}</strong>}.
+                                    </p>
+                                    <button
+                                        onClick={() => { setSearchTerm(""); setSelectedRegion("All"); }}
+                                        className="min-h-[44px] px-5 rounded-lg bg-amber-600 text-white text-sm font-medium hover:bg-amber-700 transition-colors"
+                                    >
+                                        Clear filters
+                                    </button>
+                                </div>
+                            ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {filteredDistilleries.map(distillery => (
                                     <div key={distillery.name} className="bg-white p-5 rounded-xl border border-stone-200 shadow-sm hover:shadow-md transition-all">
@@ -184,14 +253,14 @@
                                                 <h2 className="text-xl font-bold text-stone-800">{distillery.name}</h2>
                                                 <p className="text-stone-500 text-sm">📍 {distillery.town}, {distillery.region}</p>
                                             </div>
-                                            <span className="font-mono text-stone-400 text-sm">📅 {distillery.year}</span>
+                                            <span className="font-mono text-stone-500 text-sm shrink-0">📅 {distillery.year}</span>
                                         </div>
                                         <div className="space-y-3">
                                             <div>
-                                                <span className="text-[10px] font-bold text-stone-400 uppercase block mb-1">Top Expressions</span>
+                                                <span className="text-xs font-bold text-stone-500 uppercase tracking-wide block mb-1.5">Top Expressions</span>
                                                 <div className="flex flex-wrap gap-1.5">
                                                     {distillery.expressions.map(exp => (
-                                                        <span key={exp} className="bg-stone-100 text-stone-600 text-[11px] px-2 py-0.5 rounded-md border border-stone-200">{exp}</span>
+                                                        <span key={exp} className="bg-stone-100 text-stone-600 text-xs px-2 py-1 rounded-md border border-stone-200">{exp}</span>
                                                     ))}
                                                 </div>
                                             </div>
@@ -202,6 +271,7 @@
                                     </div>
                                 ))}
                             </div>
+                            )}
                         </div>
                     </main>
                 </div>
@@ -213,5 +283,3 @@
     </script>
 </body>
 </html>
-
-```
